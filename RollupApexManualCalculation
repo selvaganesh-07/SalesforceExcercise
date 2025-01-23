@@ -1,0 +1,39 @@
+public class RollUpOpportunityApex {
+    public static void toUpdateRollUpField(list<LineItem__c> newList,list<LineItem__c> oldList){
+        set<Id> opportunityIds = new set<Id>();
+        if (newList != null) {
+            for (LineItem__c item : newList) {
+                if (item.Opportunity__c != null) {
+                    opportunityIds.add(item.Opportunity__c);
+                }
+            }
+        }
+        if (oldList != null) {
+            for (LineItem__c item : oldList) {
+                if (item.Opportunity__c != null) {
+                    opportunityIds.add(item.Opportunity__c);
+                }
+            }
+        }
+Map<Id, decimal> opportunityTotals = new Map<Id, decimal>();
+        for(LineItem__c lineForResult : [select Opportunity__c,Quantity__c from LineItem__c WHERE Opportunity__c IN :opportunityIds]){
+            if(!opportunityTotals.containsKey(lineForResult.Opportunity__c)){
+                opportunityTotals.put(lineForResult.Opportunity__c,0);
+            }
+            opportunityTotals.put(lineForResult.Opportunity__c,opportunityTotals.get(lineForResult.Opportunity__c) + lineForResult.Quantity__c);
+        }  
+        List<Opportunity> opportunitiesToUpdate = new List<Opportunity>();
+        for (Id oppId : opportunityIds) {
+            Opportunity opp = new Opportunity(
+                Id = oppId,
+                Total_Quantity__c = opportunityTotals.get(oppId) != null ? opportunityTotals.get(oppId) : 0
+            );
+           
+            opportunitiesToUpdate.add(opp);
+        }
+       
+        if (!opportunitiesToUpdate.isEmpty()) {
+            update opportunitiesToUpdate;
+        }
+    }
+}
